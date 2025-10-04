@@ -1,18 +1,18 @@
-import React, { useState, useMemo } from 'react';
-import { 
-  FiSearch, 
-  FiPlus, 
-  FiEdit3, 
-  FiTrash2, 
-  FiEye, 
+import { Button, Card, Input, Modal } from '@/components/ui';
+import { useProductStore } from '@/stores';
+import type { Product } from '@/types';
+import { formatCurrency, formatDate } from '@/utils';
+import React, { useMemo, useState } from 'react';
+import {
+  FiDownload,
+  FiEdit3,
+  FiEye,
   FiEyeOff,
   FiFilter,
-  FiDownload
+  FiPlus,
+  FiSearch,
+  FiTrash2
 } from 'react-icons/fi';
-import { useProductStore } from '@/stores';
-import { Button, Input, Card, Modal } from '@/components/ui';
-import { formatCurrency, formatDate } from '@/utils';
-import type { Product } from '@/types';
 
 interface ProductFormData {
   name: string;
@@ -24,6 +24,113 @@ interface ProductFormData {
   image: string;
 }
 
+interface ProductFormProps {
+  formData: ProductFormData;
+  formErrors: Partial<ProductFormData>;
+  categories: string[];
+  onInputChange: (field: keyof ProductFormData, value: string) => void;
+}
+
+const ProductForm: React.FC<ProductFormProps> = React.memo(({
+  formData,
+  formErrors,
+  categories,
+  onInputChange
+}) => (
+  <div className="space-y-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Input
+        label="Product Name *"
+        value={formData.name}
+        onChange={(e) => onInputChange('name', e.target.value)}
+        error={formErrors.name}
+        placeholder="Enter product name"
+      />
+      <Input
+        label="Price *"
+        type="number"
+        step="0.01"
+        min="0"
+        value={formData.price}
+        onChange={(e) => onInputChange('price', e.target.value)}
+        error={formErrors.price}
+        placeholder="0.00"
+      />
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Category *
+        </label>
+        <select
+          value={formData.category}
+          onChange={(e) => onInputChange('category', e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+        >
+          <option value="">Select category</option>
+          {categories.map(category => (
+            <option key={category} value={category}>
+              {category}
+            </option>
+          ))}
+          <option value="new">+ Add New Category</option>
+        </select>
+        {formData.category === 'new' && (
+          <Input
+            className="mt-2"
+            placeholder="Enter new category name"
+            value={formData.category === 'new' ? '' : formData.category}
+            onChange={(e) => onInputChange('category', e.target.value)}
+          />
+        )}
+        {formErrors.category && (
+          <p className="mt-1 text-sm text-danger-600 dark:text-danger-400">
+            {formErrors.category}
+          </p>
+        )}
+      </div>
+      <Input
+        label="Stock Quantity *"
+        type="number"
+        min="0"
+        value={formData.stock}
+        onChange={(e) => onInputChange('stock', e.target.value)}
+        error={formErrors.stock}
+        placeholder="0"
+      />
+    </div>
+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <Input
+        label="Barcode"
+        value={formData.barcode}
+        onChange={(e) => onInputChange('barcode', e.target.value)}
+        placeholder="Product barcode"
+      />
+      <Input
+        label="Image URL"
+        value={formData.image}
+        onChange={(e) => onInputChange('image', e.target.value)}
+        placeholder="https://example.com/image.jpg"
+      />
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        Description
+      </label>
+      <textarea
+        value={formData.description}
+        onChange={(e) => onInputChange('description', e.target.value)}
+        placeholder="Product description..."
+        rows={3}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
+      />
+    </div>
+  </div>
+));
+
 export const ProductsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -32,10 +139,10 @@ export const ProductsPage: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showInactive, setShowInactive] = useState(false);
 
-  const { 
-    products, 
-    addProduct, 
-    updateProduct, 
+  const {
+    products,
+    addProduct,
+    updateProduct,
     deleteProduct
   } = useProductStore();
 
@@ -59,14 +166,14 @@ export const ProductsPage: React.FC = () => {
   // Filter products
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
-      const matchesSearch = searchTerm === '' || 
+      const matchesSearch = searchTerm === '' ||
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.barcode?.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       const matchesCategory = selectedCategory === '' || product.category === selectedCategory;
       const matchesStatus = showInactive || product.isActive;
-      
+
       return matchesSearch && matchesCategory && matchesStatus;
     });
   }, [products, searchTerm, selectedCategory, showInactive]);
@@ -173,101 +280,6 @@ export const ProductsPage: React.FC = () => {
       setFormErrors(prev => ({ ...prev, [field]: undefined }));
     }
   };
-
-  const ProductForm = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input
-          label="Product Name *"
-          value={formData.name}
-          onChange={(e) => handleInputChange('name', e.target.value)}
-          error={formErrors.name}
-          placeholder="Enter product name"
-        />
-        <Input
-          label="Price *"
-          type="number"
-          step="0.01"
-          min="0"
-          value={formData.price}
-          onChange={(e) => handleInputChange('price', e.target.value)}
-          error={formErrors.price}
-          placeholder="0.00"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Category *
-          </label>
-          <select
-            value={formData.category}
-            onChange={(e) => handleInputChange('category', e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
-          >
-            <option value="">Select category</option>
-            {categories.map(category => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-            <option value="new">+ Add New Category</option>
-          </select>
-          {formData.category === 'new' && (
-            <Input
-              className="mt-2"
-              placeholder="Enter new category name"
-              value={formData.category === 'new' ? '' : formData.category}
-              onChange={(e) => handleInputChange('category', e.target.value)}
-            />
-          )}
-          {formErrors.category && (
-            <p className="mt-1 text-sm text-danger-600 dark:text-danger-400">
-              {formErrors.category}
-            </p>
-          )}
-        </div>
-        <Input
-          label="Stock Quantity *"
-          type="number"
-          min="0"
-          value={formData.stock}
-          onChange={(e) => handleInputChange('stock', e.target.value)}
-          error={formErrors.stock}
-          placeholder="0"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input
-          label="Barcode"
-          value={formData.barcode}
-          onChange={(e) => handleInputChange('barcode', e.target.value)}
-          placeholder="Product barcode"
-        />
-        <Input
-          label="Image URL"
-          value={formData.image}
-          onChange={(e) => handleInputChange('image', e.target.value)}
-          placeholder="https://example.com/image.jpg"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          Description
-        </label>
-        <textarea
-          value={formData.description}
-          onChange={(e) => handleInputChange('description', e.target.value)}
-          placeholder="Product description..."
-          rows={3}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
-        />
-      </div>
-    </div>
-  );
 
   return (
     <div className="space-y-6">
@@ -408,24 +420,22 @@ export const ProductsPage: React.FC = () => {
                     {formatCurrency(product.price)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      product.stock <= 10
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.stock <= 10
                         ? 'bg-danger-100 text-danger-800 dark:bg-danger-900/20 dark:text-danger-200'
                         : product.stock <= 50
-                        ? 'bg-warning-100 text-warning-800 dark:bg-warning-900/20 dark:text-warning-200'
-                        : 'bg-success-100 text-success-800 dark:bg-success-900/20 dark:text-success-200'
-                    }`}>
+                          ? 'bg-warning-100 text-warning-800 dark:bg-warning-900/20 dark:text-warning-200'
+                          : 'bg-success-100 text-success-800 dark:bg-success-900/20 dark:text-success-200'
+                      }`}>
                       {product.stock}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
                       onClick={() => toggleProductStatus(product)}
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        product.isActive
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.isActive
                           ? 'bg-success-100 text-success-800 dark:bg-success-900/20 dark:text-success-200'
                           : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
-                      }`}
+                        }`}
                     >
                       {product.isActive ? 'Active' : 'Inactive'}
                     </button>
@@ -475,7 +485,12 @@ export const ProductsPage: React.FC = () => {
         title="Add New Product"
         size="lg"
       >
-        <ProductForm />
+        <ProductForm
+          formData={formData}
+          formErrors={formErrors}
+          categories={categories}
+          onInputChange={handleInputChange}
+        />
         <div className="flex justify-end space-x-3 mt-6">
           <Button
             variant="outline"
@@ -503,7 +518,12 @@ export const ProductsPage: React.FC = () => {
         title="Edit Product"
         size="lg"
       >
-        <ProductForm />
+        <ProductForm
+          formData={formData}
+          formErrors={formErrors}
+          categories={categories}
+          onInputChange={handleInputChange}
+        />
         <div className="flex justify-end space-x-3 mt-6">
           <Button
             variant="outline"
