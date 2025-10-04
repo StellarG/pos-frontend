@@ -1,6 +1,6 @@
+import type { AuthState, User } from '@/types';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AuthState, User } from '@/types';
 
 // Mock users for development
 const mockUsers: User[] = [
@@ -27,7 +27,7 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       isAuthenticated: false,
-      
+
       login: async (username: string, password: string): Promise<boolean> => {
         // Mock authentication - in real app, this would call an API
         if (username === 'admin' && password === 'admin') {
@@ -37,7 +37,7 @@ export const useAuthStore = create<AuthState>()(
             return true;
           }
         }
-        
+
         if (username === 'cashier' && password === 'cashier') {
           const user = mockUsers.find(u => u.username === username);
           if (user) {
@@ -45,16 +45,22 @@ export const useAuthStore = create<AuthState>()(
             return true;
           }
         }
-        
+
         return false;
       },
-      
+
       logout: () => {
         set({ user: null, isAuthenticated: false });
       },
     }),
     {
       name: 'auth-storage',
+      onRehydrateStorage: () => (state) => {
+        if (state?.user?.createdAt) {
+          // Convert date string back to Date object after rehydration
+          state.user.createdAt = new Date(state.user.createdAt);
+        }
+      },
     }
   )
 );

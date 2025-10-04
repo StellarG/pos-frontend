@@ -12,14 +12,21 @@ export function formatCurrency(amount: number, currency = 'USD'): string {
   }).format(amount);
 }
 
-export function formatDate(date: Date): string {
+export function formatDate(date: Date | string): string {
+  const dateObj = date instanceof Date ? date : new Date(date);
+
+  // Check if the date is valid
+  if (isNaN(dateObj.getTime())) {
+    return 'Invalid Date';
+  }
+
   return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(date);
+  }).format(dateObj);
 }
 
 export function generateId(): string {

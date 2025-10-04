@@ -1,7 +1,7 @@
+import type { Product, ProductState } from '@/types';
+import { generateId } from '@/utils';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { ProductState, Product } from '@/types';
-import { generateId } from '@/utils';
 
 // Mock data for development
 const mockProducts: Product[] = [
@@ -61,11 +61,11 @@ export const useProductStore = create<ProductState>()(
       products: mockProducts,
       searchTerm: '',
       selectedCategory: '',
-      
+
       setProducts: (products: Product[]) => {
         set({ products });
       },
-      
+
       addProduct: (productData) => {
         const newProduct: Product = {
           ...productData,
@@ -75,7 +75,7 @@ export const useProductStore = create<ProductState>()(
         };
         set({ products: [...get().products, newProduct] });
       },
-      
+
       updateProduct: (id: string, updates: Partial<Product>) => {
         set({
           products: get().products.map(product =>
@@ -85,38 +85,48 @@ export const useProductStore = create<ProductState>()(
           )
         });
       },
-      
+
       deleteProduct: (id: string) => {
         set({
           products: get().products.filter(product => product.id !== id)
         });
       },
-      
+
       setSearchTerm: (term: string) => {
         set({ searchTerm: term });
       },
-      
+
       setSelectedCategory: (category: string) => {
         set({ selectedCategory: category });
       },
-      
+
       getFilteredProducts: () => {
         const { products, searchTerm, selectedCategory } = get();
-        
+
         return products.filter(product => {
-          const matchesSearch = searchTerm === '' || 
+          const matchesSearch = searchTerm === '' ||
             product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             product.description?.toLowerCase().includes(searchTerm.toLowerCase());
-          
-          const matchesCategory = selectedCategory === '' || 
+
+          const matchesCategory = selectedCategory === '' ||
             product.category === selectedCategory;
-          
+
           return matchesSearch && matchesCategory && product.isActive;
         });
       },
     }),
     {
       name: 'product-storage',
+      onRehydrateStorage: () => (state) => {
+        if (state?.products) {
+          // Convert date strings back to Date objects after rehydration
+          state.products = state.products.map(product => ({
+            ...product,
+            createdAt: new Date(product.createdAt),
+            updatedAt: new Date(product.updatedAt),
+          }));
+        }
+      },
     }
   )
 );
